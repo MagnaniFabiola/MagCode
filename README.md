@@ -1,81 +1,72 @@
-# MagCode 
+# MagCode
 
-A custom programming language created by **Magnani**.  
+MagCode is a programming language I built from scratch in Python. It has 8 keywords, 2 built-in functions, and a transpiler that converts MagCode programs into C code.
 
-## How to Run
+You need Python 3 to run it. No extra libraries needed.
 
 ```bash
-python magcode.py programs/helloworld.txt
+python3 magcode.py programs/helloworld.txt
 ```
 
-**Requirement:** Python 3.x — check with `python --version`
+---
+
+## Keywords
+
+| Keyword | What it does | Example |
+|---|---|---|
+| `shout` | prints to screen | `shout "hello"` |
+| `listen` | reads user input | `listen name "Your name? "` |
+| `hold` | stores a variable | `hold x = 5` |
+| `numify` | converts a string to an integer | `numify x` |
+| `vibe` | if statement | `vibe x > 0` |
+| `nah` | else | `nah` |
+| `periodt` | closes a vibe or yap block | `periodt` |
+| `yap` | while loop | `yap i < 5` |
+
+## Built-ins
+
+| Function | What it does |
+|---|---|
+| `flip(x)` | reverses a string — `flip("hello")` gives `"olleh"` |
+| `length(x)` | returns the length — `length("hi")` gives `2` |
+
+Math operators: `+` `-` `*` `/` `%`  
+Comparison: `==` `!=` `<` `>` `<=` `>=`  
+Comments: any line starting with `#`
 
 ---
 
-## MagCode Keywords (8 total)
+## Examples
 
-| Keyword    | What it does                              | Example |
-|------------|-------------------------------------------|---------|
-| `shout`    | Print something to the screen             | `shout "Hello!"` |
-| `listen`   | Get input from the user                   | `listen name "Your name? "` |
-| `hold`     | Store a value in a variable               | `hold x = 5` |
-| `numify`   | Convert a variable to a real number       | `numify x` |
-| `vibe`     | If statement                              | `vibe x > 0` |
-| `nah`      | Else (the other option)                   | `nah` |
-| `periodt`  | End a `vibe` or `yap` block               | `periodt` |
-| `yap`      | While loop (keeps going until false)      | `yap i < 5` |
-
-### Built-in Functions
-
-| Function     | What it does                  | Example                       |
-|--------------|-------------------------------|-------------------------------|
-| `flip(x)`    | Reverses a string             | `flip("hello")` → `"olleh"`   |
-| `length(x)`  | Returns the length of a string | `length("hi")` → `2`         |
-
-### Operators
-
-| Type       | Operators |
-|------------|-----------|
-| Math       | `+`  `-`  `*`  `/`  `%` |
-| Compare    | `==`  `!=`  `<`  `>`  `<=`  `>=` |
-
-### Comments
-
-Any line starting with `#` is ignored.
-
----
-
-## Syntax Guide
-
-### Print something
+**Print something**
 ```
 shout "Hello, World!"
 ```
 
-### Store a variable
+**Store and use a variable**
 ```
 hold name = "Fabiola"
 shout name
 ```
 
-### Get user input
+**Get input from the user**
 ```
 listen name "What is your name? "
 shout name
 ```
 
-### If / Else
+**If / else**
 ```
 listen n "Enter a number: "
 numify n
 vibe n > 0
-  shout "Positive bestie"
+  shout "positive"
 nah
-  shout "Not positive no cap"
+  shout "not positive"
 periodt
 ```
 
-### While Loop
+**While loop**
 ```
 hold i = 0
 yap i < 5
@@ -84,7 +75,7 @@ yap i < 5
 periodt
 ```
 
-### Reverse a string
+**Reverse a string**
 ```
 listen word "Enter a word: "
 shout flip(word)
@@ -92,26 +83,23 @@ shout flip(word)
 
 ---
 
-## Example Programs
+## Programs
 
-| File | Description |
-|------|-------------|
-| `programs/helloworld.txt`     | Prints "Hello, World!" |
-| `programs/cat.txt`            | Listens and shouts back what you typed |
-| `programs/multiply.txt`       | Multiplies two single-digit numbers |
-| `programs/repeater.txt`       | Repeats a character N times |
-| `programs/reverse_string.txt` | Reverses a user-entered string |
-| `programs/is_palindrome.txt`  | Checks if a string is a palindrome |
-| `programs/is_even.txt`        | Checks if a number is even or odd |
+| File | What it does |
+|---|---|
+| `programs/helloworld.txt` | Hello World |
+| `programs/cat.txt` | reads input and prints it back |
+| `programs/is_even.txt` | checks if a number is even or odd |
+| `programs/multiply.txt` | multiplies two single-digit numbers |
+| `programs/reverse_string.txt` | reverses a string |
+| `programs/is_palindrome.txt` | checks if a string is a palindrome |
+| `programs/repeater.txt` | repeats a character N times |
 
 ---
 
-## MagCode to C Transpiler
+## Transpiler
 
-`transpiler.py` converts any MagCode program into a valid C source file.  
-The generated C code can then be compiled with `gcc` into a native executable.
-
-### How to transpile
+`transpiler.py` takes a MagCode file and outputs valid C code that you can compile with `gcc`.
 
 ```bash
 python3 transpiler.py programs/helloworld.txt output.c
@@ -119,65 +107,9 @@ gcc output.c -o output
 ./output
 ```
 
-### Transpiling all example programs
+It works in two passes. The first pass figures out the type of every variable (string or int) since C needs that before anything is declared. The second pass goes line by line and converts each keyword into the equivalent C code — `shout` becomes `printf`, `listen` becomes `fgets`, `vibe` becomes `if`, `yap` becomes `while`, and so on.
 
-```bash
-# Hello World
-python3 transpiler.py programs/helloworld.txt helloworld.c
-gcc helloworld.c -o helloworld && ./helloworld
-
-# Cat
-python3 transpiler.py programs/cat.txt cat.c
-gcc cat.c -o cat && ./cat
-
-# Multiply
-python3 transpiler.py programs/multiply.txt multiply.c
-gcc multiply.c -o multiply && ./multiply
-
-# Repeater
-python3 transpiler.py programs/repeater.txt repeater.c
-gcc repeater.c -o repeater && ./repeater
-
-# Reverse String
-python3 transpiler.py programs/reverse_string.txt reverse_string.c
-gcc reverse_string.c -o reverse_string && ./reverse_string
-
-# Is Palindrome
-python3 transpiler.py programs/is_palindrome.txt is_palindrome.c
-gcc is_palindrome.c -o is_palindrome && ./is_palindrome
-
-# Is Even
-python3 transpiler.py programs/is_even.txt is_even.c
-gcc is_even.c -o is_even && ./is_even
-```
-
-### How the transpiler works
-
-The transpiler runs in two passes over the MagCode source file:
-
-1. **First pass** (`first_pass`) — scans every line to determine the type (`int` or `str`) of each variable and which variables are converted with `numify`.
-2. **Second pass** (`generate_body`) — translates each MagCode keyword into the equivalent C code.
-
-### MagCode → C translation reference
-
-| MagCode | Generated C |
-|---|---|
-| `shout "Hello"` | `printf("Hello\n");` |
-| `shout var` (string) | `printf("%s\n", var);` |
-| `shout var` (int) | `printf("%d\n", var);` |
-| `listen var "prompt"` | `printf("prompt"); fgets(var, ...); ...` |
-| `numify var` | `var = atoi(var_buf);` |
-| `hold x = ""` | `x[0] = '\0';` |
-| `hold x = a + b` (strings) | `strncat(x, b, ...);` |
-| `hold x = a * b` (ints) | `x = a * b;` |
-| `hold rev = flip(word)` | `flip(word, rev);` |
-| `vibe` / `nah` / `periodt` | `if (...) {` / `} else {` / `}` |
-| `yap` / `periodt` | `while (...) {` / `}` |
-
-### Notes
-
-- MagCode variables that clash with C reserved words (e.g. `char`) are automatically renamed (e.g. `char_var`).
-- String variables are declared as `char name[1024]`.
-- Numified variables use a `_buf` helper for reading input: `fgets` → `atoi`.
-- The `flip()` built-in is compiled as a helper C function included at the top of every output file.
-- Requires `gcc` to compile the generated C file.
+A few things it handles automatically:
+- string comparisons with `==` get converted to `strcmp()` since C can't compare strings with `==` directly
+- variables named after C reserved words like `char` get renamed to `char_var`
+- the `flip()` built-in gets compiled as a real C function at the top of the output file
