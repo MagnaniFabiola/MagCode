@@ -1,0 +1,2 @@
+# MagCode - Hello World
+shout "Hello, World!"

@@ -1,0 +1,3 @@
+# MagCode - Reverse a string
+listen word "Enter a string: "
+shout flip(word)

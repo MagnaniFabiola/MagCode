@@ -1,0 +1,3 @@
+# MagCode - Cat (listens and shouts back what you typed)
+listen text "Enter text: "
+shout text

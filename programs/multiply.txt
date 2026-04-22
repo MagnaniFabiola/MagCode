@@ -1,0 +1,11 @@
+# MagCode - Multiply two single-digit numbers
+listen a "Enter first single-digit number: "
+listen b "Enter second single-digit number: "
+numify a
+numify b
+vibe a >= 0 and a <= 9 and b >= 0 and b <= 9
+  hold result = a * b
+  shout result
+nah
+  shout "Error: both numbers must be single-digit (0-9)"
+periodt

@@ -1,0 +1,8 @@
+# MagCode - Check if a string is a palindrome
+listen word "Enter a string: "
+hold rev = flip(word)
+vibe word == rev
+  shout "It is a palindrome!"
+nah
+  shout "It is not a palindrome."
+periodt

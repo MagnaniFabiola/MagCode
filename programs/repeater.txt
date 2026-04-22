@@ -1,0 +1,15 @@
+# MagCode - Repeat a character a certain number of times
+listen char "Enter a character: "
+vibe length(char) == 1
+  listen times "How many times? "
+  numify times
+  hold result = ""
+  hold i = 0
+  yap i < times
+    hold result = result + char
+    hold i = i + 1
+  periodt
+  shout result
+nah
+  shout "Error: please enter a single character only"
+periodt

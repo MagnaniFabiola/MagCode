@@ -1,0 +1,12 @@
+# MagCode - Check if a number is even or odd
+listen n "Enter an integer: "
+numify n
+vibe numify_failed == 1
+  shout "Error: that is not a valid number!"
+nah
+  vibe n % 2 == 0
+    shout "Even"
+  nah
+    shout "Odd"
+  periodt
+periodt
