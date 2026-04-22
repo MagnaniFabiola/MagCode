@@ -1,3 +1,11 @@
 # MagCode - Reverse a string
+# get the string from the user
 listen word "Enter a string: "
-shout flip(word)
+# start with an empty string that will hold the reversed result
+hold result = ""
+hold i = length(word) - 1
+yap i >= 0
+  hold result = result + word[i]
+  hold i = i - 1
+periodt
+shout result

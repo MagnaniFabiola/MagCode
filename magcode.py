@@ -4,23 +4,13 @@ MagCode Interpreter
 A programming language created by Magnani.
 
 Keywords : shout, listen, hold, numify, vibe, nah, periodt, yap
-Built-in : flip(x)  ->  reverses a string
-
+Built-in : length(x)  ->  returns the length of a string
 """
 
 import sys
 
 
-# ── Built-in functions available in MagCode programs ─────────────────
-def flip(x):
-    x = str(x)
-    result = ""
-    i = len(x) - 1
-    while i >= 0:
-        result = result + x[i]
-        i = i - 1
-    return result
-
+# ── Built-in primitive available in MagCode programs ─────────────────
 def length(x):
     return len(str(x))
 
@@ -35,7 +25,6 @@ def evaluate(expr, variables):
 
     # Build the environment that eval() can use
     env = dict(variables)
-    env['flip']   = flip
     env['length'] = length
 
     try:
@@ -112,8 +101,6 @@ def execute(lines, variables, start, stop):
             variables[varname.strip()] = evaluate(expr.strip(), variables)
 
         # numify <varname>  →  convert variable to a real number
-        #elif cmd == 'numify':
-          #  variables[rest] = int(str(variables[rest]).strip())
         elif cmd == 'numify':
             try:
                 variables[rest] = int(str(variables[rest]).strip())

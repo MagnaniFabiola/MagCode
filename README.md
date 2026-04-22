@@ -1,6 +1,6 @@
 # MagCode
 
-MagCode is a programming language I built from scratch in Python. It has 8 keywords, 2 built-in functions, and a transpiler that converts MagCode programs into C code.
+MagCode is a programming language I built from scratch in Python. It has 8 keywords, 1 built-in function, and a transpiler that converts MagCode programs into C code.
 
 You need Python 3 to run it. No extra libraries needed.
 
@@ -27,7 +27,6 @@ python3 magcode.py programs/helloworld.txt
 
 | Function | What it does |
 |---|---|
-| `flip(x)` | reverses a string — `flip("hello")` gives `"olleh"` |
 | `length(x)` | returns the length — `length("hi")` gives `2` |
 
 Math operators: `+` `-` `*` `/` `%`  
@@ -78,7 +77,13 @@ periodt
 **Reverse a string**
 ```
 listen word "Enter a word: "
-shout flip(word)
+hold result = ""
+hold i = length(word) - 1
+yap i >= 0
+  hold result = result + word[i]
+  hold i = i - 1
+periodt
+shout result
 ```
 
 ---
@@ -112,4 +117,4 @@ It works in two passes. The first pass figures out the type of every variable (s
 A few things it handles automatically:
 - string comparisons with `==` get converted to `strcmp()` since C can't compare strings with `==` directly
 - variables named after C reserved words like `char` get renamed to `char_var`
-- the `flip()` built-in gets compiled as a real C function at the top of the output file
+- string reversal is done with a loop using `length()` and character indexing

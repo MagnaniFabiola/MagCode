@@ -1,6 +1,11 @@
 # MagCode - Check if a string is a palindrome
 listen word "Enter a string: "
-hold rev = flip(word)
+hold rev = ""
+hold i = length(word) - 1
+yap i >= 0
+  hold rev = rev + word[i]
+  hold i = i - 1
+periodt
 vibe word == rev
   shout "It is a palindrome!"
 nah
