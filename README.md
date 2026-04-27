@@ -104,7 +104,9 @@ shout result
 
 ## Transpiler
 
-`transpiler.py` takes a MagCode file and outputs valid C code that you can compile with `gcc`.
+I built a transpiler (`transpiler.py`) that takes any MagCode `.txt` file and converts it into a C file you can compile with `gcc`. I wrote it by hand in Python — no external tools like Lex or ANTLR.
+
+To run it:
 
 ```bash
 python3 transpiler.py programs/helloworld.txt output.c
@@ -112,9 +114,88 @@ gcc output.c -o output
 ./output
 ```
 
-It works in two passes. The first pass figures out the type of every variable (string or int) since C needs that before anything is declared. The second pass goes line by line and converts each keyword into the equivalent C code — `shout` becomes `printf`, `listen` becomes `fgets`, `vibe` becomes `if`, `yap` becomes `while`, and so on.
+If you skip the output file it just prints the C code to the terminal so you can preview it:
 
-A few things it handles automatically:
-- string comparisons with `==` get converted to `strcmp()` since C can't compare strings with `==` directly
-- variables named after C reserved words like `char` get renamed to `char_var`
-- string reversal is done with a loop using `length()` and character indexing
+```bash
+python3 transpiler.py programs/helloworld.txt
+```
+
+---
+
+### How I built it — two passes
+
+The big challenge was that C needs every variable declared with its type (`int` or `char[]`) at the top of `main()` before any code runs. MagCode doesn't have type declarations so I had to figure that out myself.
+
+**Pass 1 — figure out variable types**
+
+I scan through all the lines first just to collect types, before generating any C. The rules I used:
+
+- `listen x` -> `x` is a string (input is always text)
+- `numify x` -> `x` becomes an `int`
+- `hold x = "..."`  ->`x` is a string (starts with a quote)
+- `hold x = 5` -> `x` is an `int`
+
+**Pass 2 — translate each line**
+
+I loop through every line and use `if/elif` to match the keyword and output the right C code.
+
+---
+
+### What each keyword turns into
+
+| MagCode | C output | Notes |
+|---|---|---|
+| `shout "Hello!"` | `printf("Hello!\n");` | string literal |
+| `shout x` | `printf("%s\n", x);` or `printf("%d\n", x);` | depends on type of `x` |
+| `listen x "prompt"` | `printf("prompt"); fgets(x, sizeof(x), stdin);` | reads into a `char[]` |
+| `hold x = 5` | `x = 5;` | integer assignment |
+| `hold x = "hi"` | `strcpy(x, "hi");` | can't use `=` on strings in C |
+| `hold x = a + b` | `strncat(x, b, sizeof(x) - strlen(x) - 1);` | safe concatenation |
+| `numify x` | `x = atoi(x_buf);` | converts input buffer to int |
+| `vibe x > 0` | `if (x > 0) {` | if block |
+| `nah` | `} else {` | else |
+| `periodt` | `}` | closes the block |
+| `yap i < 5` | `while (i < 5) {` | while loop |
+| `length(x)` | `(int)strlen(x)` | string length |
+
+---
+
+### Things I had to handle specially
+
+**String comparison** — you can't use `==` on strings in C, you have to use `strcmp`. So `vibe word == rev` becomes:
+```c
+if (strcmp(word, rev) == 0) {
+```
+
+**C keyword conflicts** — one of my example programs uses a variable called `char`, which is a reserved word in C. I handle this by renaming it to `char_var` automatically:
+```c
+char char_var[1024] = "";
+```
+
+**`numify` needs a buffer** — C can't read input directly into an `int`. I declare a temporary `char[]` buffer, read into that with `fgets`, then convert with `atoi`:
+```c
+char n_buf[1024] = "";
+int  n = 0;
+fgets(n_buf, sizeof(n_buf), stdin);
+n = atoi(n_buf);
+numify_failed = (n == 0 && n_buf[0] != '0') ? 1 : 0;
+```
+
+**`and` / `or`** — MagCode uses Python-style operators so I replace them before generating C:
+- `and` → `&&`
+- `or` → `||`
+
+**Character indexing** — `word[i]` gives you a single `char` in C, not a string. When it shows up in a concatenation like `hold rev = rev + word[i]`, I wrap it in a 2-char array so `strncat` works:
+```c
+{ char _ch[2]; _ch[0] = word[i]; _ch[1] = '\0'; strncat(rev, _ch, sizeof(rev) - strlen(rev) - 1); }
+```
+
+---
+
+### Every generated file starts with
+
+```c
+#include <stdio.h>    // printf, fgets
+#include <string.h>   // strlen, strcpy, strcmp, strncat
+#include <stdlib.h>   // atoi
+```
