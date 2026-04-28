@@ -21,11 +21,11 @@ How to use:
     ./output
 """
 
-import sys  # gives us access to command-line arguments (sys.argv) and sys.exit()
-import re   # regular expressions — used to find and replace patterns in strings
+import sys  
+import re   # regular expressions - used to find and replace patterns in strings
 
-# C keywords that cannot be used as variable names — if a MagCode variable
-# uses one of these names, we rename it by adding _var (e.g. char → char_var)
+# C keywords that cannot be used as variable names - if a MagCode variable
+# uses one of these names, we rename it by adding _var (e.g. char -> char_var)
 C_RESERVED = {
     'char', 'int', 'float', 'double', 'long', 'short', 'void',
     'if', 'else', 'while', 'for', 'do', 'switch', 'case', 'break',
@@ -33,20 +33,19 @@ C_RESERVED = {
     'static', 'extern', 'const', 'auto', 'register', 'sizeof',
     'unsigned', 'signed', 'goto', 'default'
 }
-
+#helper function to check if a variable name is a C keyword
 def safe_name(name):
-    # if the variable name is a C keyword, add _var to the end to avoid conflicts
     return name + '_var' if name in C_RESERVED else name
 
 
 def translate_condition(cond, types):
     # translate a MagCode condition into a valid C boolean expression
     cond = cond.strip()
-    # MagCode uses Python-style 'and'/'or' — replace with C's && and ||
+    # MagCode uses Python-style 'and'/'or' - replace with C's && and ||
     cond = re.sub(r'\band\b', '&&', cond)
     cond = re.sub(r'\bor\b',  '||', cond)
 
-    # string equality/inequality — C can't use == on strings, must use strcmp
+    # string equality/inequality - C can't use == on strings, must use strcmp
     for op in ['==', '!=']:
         if op in cond:
             left, right = cond.split(op, 1)
@@ -58,18 +57,21 @@ def translate_condition(cond, types):
                 # strcmp returns 0 when equal, so wrap accordingly
                 return f'strcmp({ls}, {rs}) == 0' if op == '==' else f'strcmp({ls}, {rs}) != 0'
 
-    # replace length(x) with (int)strlen(safe_name(x))
-    cond = re.sub(
-        r'\blength\((\w+)\)',
-        lambda m: f'(int)strlen({safe_name(m.group(1))})',
-        cond
-    )
+    # replace length(x) with (int)strlen(x)
+    while 'length(' in cond:
+        start = cond.index('length(')
+        end   = cond.index(')', start)
+        var   = cond[start + 7 : end]
+        cond  = cond[:start] + f'(int)strlen({safe_name(var)})' + cond[end + 1:]
+
     # rename every known variable to its safe C name
-    cond = re.sub(
-        r'\b([a-zA-Z_]\w*)\b',
-        lambda m: safe_name(m.group(0)) if m.group(0) in types else m.group(0),
-        cond
-    )
+    def rename_var(m):
+        word = m.group(0)
+        if word in types:
+            return safe_name(word)
+        return word
+
+    cond = re.sub(r'\b([a-zA-Z_]\w*)\b', rename_var, cond)
     return cond
 
 
@@ -99,7 +101,7 @@ def first_pass(lines):
             varname = varname.strip()
             expr    = expr.strip()
             if varname not in types:               # only set type if we haven't seen it yet
-                if expr.startswith('"'):           # value starts with quote → it's a string
+                if expr.startswith('"'):           # value starts with quote -> it's a string
                     types[varname] = 'str'
                 else:                              # otherwise assume integer
                     types[varname] = 'int'
@@ -159,16 +161,16 @@ def transpile(src_file, out_file):
     for line in lines:
         stripped = line.strip()    # remove leading/trailing whitespace and the \n at the end
 
-        if not stripped:           # blank line → skip it
+        if not stripped:           # blank line -> skip it
             continue
-        if stripped.startswith('#'):  # MagCode comment → skip it
+        if stripped.startswith('#'):  # MagCode comment -> skip it
             continue
 
         parts_line = stripped.split(None, 1)  # split on first space: ['shout', '"Hello!"']
         cmd  = parts_line[0]                  # the keyword e.g. 'shout'
         rest = parts_line[1] if len(parts_line) > 1 else ''  # everything after the keyword
 
-        if cmd == 'shout':                         # shout → printf
+        if cmd == 'shout':                         # shout -> printf
             expr = rest.strip()                    # what we want to print
             if expr.startswith('"') and expr.endswith('"'):   # it's a string literal like "Hello!"
                 text = expr[1:-1]                  # strip the outer quotes: Hello!
@@ -178,24 +180,27 @@ def transpile(src_file, out_file):
             else:                                  # string variable
                 add(f'printf("%s\\n", {safe_name(expr)});')
 
-        elif cmd == 'hold':                        # hold → C assignment
+        elif cmd == 'hold':                        # hold -> C assignment
             varname, expr = rest.split('=', 1)     # split on '=' to get name and value
             varname = varname.strip()
             expr    = expr.strip()
             sv      = safe_name(varname)           # C-safe version of the variable name
             if types.get(varname) == 'int':        # integer assignment
                 # also replace length(x) with strlen(x) inside numeric expressions
-                expr = re.sub(
-                    r'\blength\((\w+)\)',
-                    lambda m: f'(int)strlen({safe_name(m.group(1))})',
-                    expr
-                )
+                while 'length(' in expr:
+                    start = expr.index('length(')
+                    end   = expr.index(')', start)
+                    var   = expr[start + 7 : end]
+                    expr  = expr[:start] + f'(int)strlen({safe_name(var)})' + expr[end + 1:]
+
                 # rename known variables to safe C names in the expression
-                expr = re.sub(
-                    r'\b([a-zA-Z_]\w*)\b',
-                    lambda m: safe_name(m.group(0)) if m.group(0) in types else m.group(0),
-                    expr
-                )
+                def rename_var_expr(m):
+                    word = m.group(0)
+                    if word in types:
+                        return safe_name(word)
+                    return word
+
+                expr = re.sub(r'\b([a-zA-Z_]\w*)\b', rename_var_expr, expr)
                 add(f'{sv} = {expr};')             # e.g. x = 5;
 
             elif types.get(varname) == 'str':      # string assignment
@@ -210,8 +215,8 @@ def transpile(src_file, out_file):
                         add(f'strcpy({sv}, {first});')
                     for p in pieces[1:]:           # append each remaining piece
                         if p.startswith('"'):
-                            src = p               # string literal — use as-is
-                        elif '[' in p:            # e.g. word[i] — single character access
+                            src = p               # string literal - use as-is
+                        elif '[' in p:            # e.g. word[i] - single character access
                             # in C, word[i] is a char not a string, so wrap it in a 2-char array
                             add(f'{{ char _ch[2]; _ch[0] = {p}; _ch[1] = \'\\0\'; strncat({sv}, _ch, sizeof({sv}) - strlen({sv}) - 1); }}')
                             continue
@@ -221,7 +226,7 @@ def transpile(src_file, out_file):
                 else:                              # copying from another string variable
                     add(f'strcpy({sv}, {safe_name(expr)});')
 
-        elif cmd == 'listen':                      # listen → printf prompt + fgets input
+        elif cmd == 'listen':                      # listen - printf prompt + fgets input
             space   = rest.index(' ')              # find where the variable name ends
             varname = rest[:space]                 # everything before that space is the name
             sv      = safe_name(varname)           # C-safe version
@@ -232,52 +237,52 @@ def transpile(src_file, out_file):
                 add(f'printf("{prompt_text}");')           # show the prompt
                 add(f'fgets({buf}, sizeof({buf}), stdin);') # read into buffer
                 add(f'{buf}[strcspn({buf}, "\\n")] = 0;')  # strip the newline
-            else:                                  # regular string — read directly into the var
+            else:                                  # regular string - read directly into the var
                 add(f'printf("{prompt_text}");')
                 add(f'fgets({sv}, sizeof({sv}), stdin);')
                 add(f'{sv}[strcspn({sv}, "\\n")] = 0;')
 
-        elif cmd == 'numify':                      # numify → atoi converts the buffer string to int
+        elif cmd == 'numify':                      # numify - atoi converts the buffer string to int
             varname = rest.strip()
             sv      = safe_name(varname)
             buf     = sv + '_buf'
-            add(f'{sv} = atoi({buf});')            # atoi("42") → 42
+            add(f'{sv} = atoi({buf});')            # atoi("42") -> 42
             # set numify_failed: 1 if input wasn't a valid number, 0 if it was
             add(f'numify_failed = ({sv} == 0 && {buf}[0] != \'0\') ? 1 : 0;')
 
-        elif cmd == 'vibe':                        # vibe → if statement
+        elif cmd == 'vibe':                        # vibe -> if statement
             cond = translate_condition(rest, types)  # translate condition to valid C
             add(f'if ({cond}) {{')                 # e.g. if (n % 2 == 0) {
-            indent += 1                            # increase indent — we're now inside the if block
+            indent += 1                            # increase indent - we're now inside the if block
 
-        elif cmd == 'nah':                         # nah → else
+        elif cmd == 'nah':                         # nah -> else
             indent -= 1                            # close the if block first
             add('} else {')                        # write the else
             indent += 1                            # increase indent for the else body
 
-        elif cmd == 'periodt':                     # periodt → closing brace
+        elif cmd == 'periodt':                     # periodt -> closing brace
             indent -= 1                            # decrease indent before writing the brace
             add('}')                               # close the block
 
-        elif cmd == 'yap':                         # yap → while loop
+        elif cmd == 'yap':                         # yap - while loop
             cond = translate_condition(rest, types)  # translate condition to valid C
             add(f'while ({cond}) {{')              # e.g. while (i < 10) {
-            indent += 1                            # increase indent — we're inside the loop
+            indent += 1                            # increase indent - we're inside the loop
 
-    parts.append('    return 0;')  # close main() with return 0
-    parts.append('}')              # closing brace of main()
-    parts.append('')               # trailing newline at end of file
+    parts.append('    return 0;')  
+    parts.append('}')             
+    parts.append('')               
 
-    output = '\n'.join(parts)      # join every piece with a newline between them
+    output = '\n'.join(parts)     
 
     if out_file:                               # if the user gave us an output filename
         with open(out_file, 'w') as f:
             f.write(output)                    # write the C code to that file
-        print(f"Transpiled  →  {out_file}")
-        print(f"Compile     →  gcc {out_file} -o output")
-        print(f"Run         →  ./output")
+        print(f"Transpiled  ->  {out_file}")
+        print(f"Compile     ->  gcc {out_file} -o output")
+        print(f"Run         ->  ./output")
     else:
-        print(output)                          # no output file → just print to terminal
+        print(output)                          # no output file -> just print to terminal
 
 
 if __name__ == '__main__':
